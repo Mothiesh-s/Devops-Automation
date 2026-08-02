@@ -1,0 +1,94 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'mvn3.9.9'
+    }
+
+    environment {
+        IMAGE_NAME = "mothiesh/cicd-image"
+        CONTAINER_NAME = "cicd-container"
+        EC2_HOST = "16.16.219.245"
+        PEM_KEY = "C:\\JenkinsKeys\\my-password.pem"
+    }
+
+    stages {
+
+        stage('Git Clone') {
+            steps {
+                git credentialsId: 'github_credentials',
+                    url: 'https://github.com/Mothiesh-s/Devops-Automation.git'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('devops-pract') {
+                    bat 'mvn test'
+                }
+            }
+        }
+
+        stage('Build Jar') {
+            steps {
+                dir('devops-pract') {
+                    bat 'mvn clean install -DskipTests=true'
+                }
+            }
+        }
+
+        stage('Remove Old Local Container') {
+            steps {
+                bat 'docker rm -f %CONTAINER_NAME% || exit /b 0'
+            }
+        }
+
+        stage('Remove Old Local Image') {
+            steps {
+                bat 'docker rmi -f cicd-image || exit /b 0'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('devops-pract') {
+                    bat 'docker build -t cicd-image .'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                    bat 'docker tag cicd-image %IMAGE_NAME%:latest'
+                    bat 'docker push %IMAGE_NAME%:latest'
+                }
+            }
+        }
+
+        stage('Deploy to AWS EC2') {
+            steps {
+                bat """
+                ssh -i "%PEM_KEY%" -o StrictHostKeyChecking=no ec2-user@%EC2_HOST% "docker pull %IMAGE_NAME%:latest && docker stop %CONTAINER_NAME% || true && docker rm %CONTAINER_NAME% || true && docker run -d --name %CONTAINER_NAME% -p 9090:8090 %IMAGE_NAME%:latest"
+                """
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo 'CI/CD Pipeline Completed Successfully.'
+        }
+
+        failure {
+            echo 'Pipeline Failed.'
+        }
+    }
+}
