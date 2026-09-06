@@ -15,6 +15,12 @@ public class Controller {
         return "🚀 Employee Management API is Running Successfully";
     }
 
+
+    @GetMapping("/get")
+    public String home() {
+        return "🚀 Hello this is Mothiesh.S";
+    }
+
     @GetMapping("/health")
     public Map<String, Object> health() {
 
