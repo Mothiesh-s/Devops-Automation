@@ -17,7 +17,7 @@ public class Controller {
 
 
     @GetMapping("/get")
-    public String home() {
+    public String getname() {
         return "🚀 Hello this is Mothiesh.S";
     }
 
