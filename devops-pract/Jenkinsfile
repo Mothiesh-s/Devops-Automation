@@ -8,7 +8,7 @@ pipeline {
     environment {
         IMAGE_NAME = "mothiesh/cicd-image"
         CONTAINER_NAME = "cicd-container"
-        EC2_HOST = "16.192.149.149"
+        EC2_HOST = "172.31.11.133"
         PEM_KEY = "C:\\JenkinsKeys\\my-password.pem"
     }
 
